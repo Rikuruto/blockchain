@@ -23,6 +23,14 @@ type block struct {
 	PreviousHash string `json:"previous_hash,omitempty"`
 }
 
+type succMined struct {
+	Message      string `json:"message"`
+	Index        int    `json:"index,omitempty"`
+	Timestamp    string `json:"timestamp,omitempty"`
+	Proof        int    `json:"proof,omitempty"`
+	PreviousHash string `json:"previous_hash,omitempty"`
+}
+
 func (bc *blockchain) CreateBlock(proof int, previousHash string) block {
 	blk := block{
 		Index:        len(bc.chain) + 1,
@@ -86,6 +94,8 @@ func (bc blockchain) chainValid() bool {
 
 func init() {
 	bc = blockchain{}
+	proof := bc.proofOfWork(0)
+	bc.CreateBlock(proof, "0")
 }
 
 func main() {
@@ -94,5 +104,18 @@ func main() {
 }
 
 func mineBlockHandler(w http.ResponseWriter, r *http.Request) {
-
+	prevBlock := bc.GetPreviousBlock()
+	prevProof := prevBlock.Proof
+	proof := bc.proofOfWork(prevProof)
+	prevHash := prevBlock.Hash()
+	blk := bc.CreateBlock(proof, prevHash)
+	succ := succMined{
+		Message:      "Congratulations, you just mined a block!",
+		Index:        blk.Index,
+		Timestamp:    blk.Timestamp,
+		Proof:        blk.Proof,
+		PreviousHash: blk.PreviousHash,
+	}
+	j, _ := json.MarshalIndent(succ, "", "  ")
+	fmt.Fprintf(w, "%s", j)
 }
